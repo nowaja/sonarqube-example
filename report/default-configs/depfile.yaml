@@ -1,0 +1,33 @@
+paths:
+  - ./src
+
+layers:
+  - name: Controller
+    collectors:
+      - type: className
+        regex: App\\Controller\\.*
+
+  - name: Repository
+    collectors:
+      - type: className
+        regex: App\\Repository\\.*
+
+  - name: Service
+    collectors:
+      - type: className
+        regex: App\\Service\\.*
+
+  - name: Symfony
+    collectors:
+      - type: className
+        regex: Symfony\\.*
+
+# ---------------------------------------------
+
+ruleset:
+  Controller:
+    - Service
+    - Symfony
+  Service:
+    - Repository
+    - Symfony

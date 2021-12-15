@@ -1,0 +1,85 @@
+#!/usr/bin/env php
+<?php
+/**
+ * Transforms Deptrac json report file to custom issues report for SonarQube
+ */
+
+const SONARQUBE_DEFAULT_EFFORT_MINUTES = 60;
+const SONARQUBE_DEFAULT_END_COLUMN     = 1;
+const SONARQUBE_DEFAULT_START_COLUMN   = 0;
+const SONARQUBE_ENGINE_ID              = 'DEPTRAC';
+const SONARQUBE_RULE_ID                = 'FORBIDDEN_DEPENDENCY';
+const SONARQUBE_SEVERITY               = 'BLOCKER';
+const SONARQUBE_TYPE                   = 'VULNERABILITY';
+const FILENAME_PATHS_TO_REMOVE         = ['#^/app/#'];
+
+$reportFilePath = $argv[1];
+
+try {
+    $reportData = file_get_contents($reportFilePath);
+
+    if (false === $reportData) {
+        throw new Exception('Cannot read file ' . $reportFilePath);
+    }
+
+    $decodedData = json_decode($reportData, true);
+
+    if (false === $decodedData) {
+        throw new Exception('Cannot decode json content from file ' . $reportFilePath);
+    }
+
+    $issues = [];
+
+    foreach ($decodedData['files'] as $fileName => $fileInfo) {
+        $fileName = preg_replace(FILENAME_PATHS_TO_REMOVE, '', $fileName);
+
+        $issue = [
+            'engineId'      => SONARQUBE_ENGINE_ID,
+            'ruleId'        => SONARQUBE_RULE_ID,
+            'severity'      => SONARQUBE_SEVERITY,
+            'type'          => SONARQUBE_TYPE,
+            'effortMinutes' => SONARQUBE_DEFAULT_EFFORT_MINUTES,
+        ];
+
+        $primaryLocation = array_pop($fileInfo['messages']);
+
+        $issue['primaryLocation'] = [
+            'message'   => $primaryLocation['message'],
+            'filePath'  => $fileName,
+            'textRange' => [
+                'startLine'   => $primaryLocation['line'],
+                'startColumn' => SONARQUBE_DEFAULT_START_COLUMN,
+                'endLine'     => $primaryLocation['line'],
+                'endColumn'   => SONARQUBE_DEFAULT_END_COLUMN,
+            ],
+        ];
+
+        foreach ($fileInfo['messages'] as $message) {
+            $issue['secondaryLocations'][] = [
+                'message'   => $message['message'],
+                'filePath'  => $fileName,
+                'textRange' => [
+                    'startLine'   => $message['line'],
+                    'startColumn' => SONARQUBE_DEFAULT_START_COLUMN,
+                    'endLine'     => $message['line'],
+                    'endColumn'   => SONARQUBE_DEFAULT_END_COLUMN,
+                ],
+            ];
+        }
+
+        $issues[] = $issue;
+    }
+
+    $issuesData = json_encode(['issues' => $issues]);
+    $bytes = file_put_contents($reportFilePath, $issuesData);
+
+    if (false === $bytes || $bytes !== strlen($issuesData)) {
+        throw new Exception('Cannot write content to file %s' . $reportFilePath);
+    }
+
+    echo 'Deptrac report has been successfully transformed to SonarQube format.';
+    exit(0);
+} catch (Throwable $e) {
+    echo $e->getMessage();
+    exit(1);
+}

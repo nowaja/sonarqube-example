@@ -1,0 +1,15 @@
+parameters:
+    # Rule level, for more info: https:/phpstan.org/user-guide/rule-levels
+    level: max
+
+    paths:
+        - src
+
+    # Enable assigning property types from constructor typehints
+    inferPrivatePropertyTypeFromConstructor: true
+
+    # Ignore type checks in array return types
+    checkMissingIterableValueType: false
+
+    # Disable junk
+    tipsOfTheDay: false

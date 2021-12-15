@@ -1,3 +1,7 @@
+.deptrac.cache
+.idea
+.scannerwork
+sonarqube_report.html
 
 ###> symfony/framework-bundle ###
 /.env.local

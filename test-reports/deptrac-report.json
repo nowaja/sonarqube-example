@@ -1,0 +1,33 @@
+{
+    "issues": [
+        {
+            "engineId": "DEPTRAC",
+            "ruleId": "FORBIDDEN_DEPENDENCY",
+            "severity": "BLOCKER",
+            "type": "VULNERABILITY",
+            "effortMinutes": 60,
+            "primaryLocation": {
+                "message": "App\\Controller\\DataController must not depend on App\\Repository\\DataRepositoryInterface (Controller on Repository)",
+                "filePath": "src\/Controller\/DataController.php",
+                "textRange": {
+                    "startLine": 5,
+                    "startColumn": 0,
+                    "endLine": 5,
+                    "endColumn": 1
+                }
+            },
+            "secondaryLocations": [
+                {
+                    "message": "App\\Controller\\DataController must not depend on App\\Repository\\DataRepositoryInterface (Controller on Repository)",
+                    "filePath": "src\/Controller\/DataController.php",
+                    "textRange": {
+                        "startLine": 15,
+                        "startColumn": 0,
+                        "endLine": 15,
+                        "endColumn": 1
+                    }
+                }
+            ]
+        }
+    ]
+}

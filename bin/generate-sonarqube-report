@@ -1,0 +1,88 @@
+#!/usr/bin/env php
+<?php
+
+define('SONAR_URL', $argv[1]);
+define('AUTH', $argv[2]);
+
+$ch = curl_init();
+
+$header[] = 'Authorization: Basic ' . AUTH;
+
+curl_setopt($ch, CURLOPT_URL, SONAR_URL . '/api/projects/search');
+curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+
+curl_close($ch);
+
+if (!$response) {
+    die('No projects found');
+}
+
+$response = json_decode($response, true, JSON_THROW_ON_ERROR);
+
+if (empty($response['components'])) {
+    die('No projects found');
+}
+
+$report = "
+<table border='1' cellspacing='0' cellpadding='2'>
+<tr>
+    <th>Project KEY</th>
+    <th>Reliability Rating</th>
+    <th>Security Rating</th>
+    <th>Security Review Rating</th>
+    <th>Maintainability Rating</th>
+    <th>Reliability Rating</th>
+    <th>Possible Bugs</th>
+    <th>Possible Vulnerabilities</th>
+    <th>Possible Code Smells</th>
+    <th>Lines of Code</th>
+    <th>Possible Security Hotspots</th>
+</tr>
+";
+
+foreach ($response['components'] as $project) {
+    $ch = curl_init();
+
+    $params = [
+        'additionalFields' => 'period,metrics',
+        'component'        => $project['key'],
+        'metricKeys'       => 'alert_status,quality_gate_details,bugs,new_bugs,reliability_rating,new_reliability_rating,vulnerabilities,new_vulnerabilities,security_rating,new_security_rating,security_hotspots,new_security_hotspots,security_hotspots_reviewed,new_security_hotspots_reviewed,security_review_rating,new_security_review_rating,code_smells,new_code_smells,sqale_rating,new_maintainability_rating,sqale_index,new_technical_debt,coverage,new_coverage,lines_to_cover,new_lines_to_cover,tests,duplicated_lines_density,new_duplicated_lines_density,duplicated_blocks,ncloc,ncloc_language_distribution,projects,lines,new_lines,new_blocker_violations,new_critical_violations',
+    ];
+
+    curl_setopt($ch, CURLOPT_URL, SONAR_URL . '/api/measures/component?' . http_build_query($params));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+    $projectInfo = curl_exec($ch);
+    $projectInfo = json_decode($projectInfo, true, JSON_THROW_ON_ERROR);
+
+    curl_close($ch);
+
+    $measures = [];
+    foreach($projectInfo['component']['measures'] as $measure) {
+        $measures[$measure['metric']] = $measure['value'] ?? $measure['period']['value'];
+    }
+
+    $report .= "
+<tr>
+    <td>{$project['key']}</td>
+    <td>{$measures['reliability_rating']}</td>
+    <td>{$measures['security_rating']}</td>
+    <td>{$measures['security_review_rating']}</td>
+    <td>{$measures['sqale_rating']}</td>
+    <td>{$measures['reliability_rating']}</td>
+    <td>{$measures['bugs']}</td>
+    <td>{$measures['vulnerabilities']}</td>
+    <td>{$measures['code_smells']}</td>
+    <td>{$measures['lines']}</td>
+    <td>{$measures['security_hotspots']}</td>
+</tr>    
+";
+}
+
+$report .= '</table>';
+
+file_put_contents('sonarqube_report.html', $report);
